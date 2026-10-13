@@ -1,0 +1,27 @@
+{
+  "name": "catalogiq",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "mock-woo"
+  ],
+  "scripts": {
+    "dev": "cross-env NODE_EXTRA_CA_CERTS=\"certs/catlogue.local.crt\" concurrently -n \"API,WEB,MOCK\" -c \"cyan,magenta,yellow\" \"npm run dev -w @catalogiq/api\" \"npm run dev -w @catalogiq/web\" \"npm run dev -w @catalogiq/mock-woo\"",
+    "dev:api": "cross-env NODE_EXTRA_CA_CERTS=\"certs/catlogue.local.crt\" npm run dev -w @catalogiq/api",
+    "dev:web": "npm run dev -w @catalogiq/web",
+    "dev:mock": "npm run dev -w @catalogiq/mock-woo",
+    "build": "npm run build --workspaces",
+    "test": "npm run test -w @catalogiq/api",
+    "seed": "node scripts/seed-local.js",
+    "seed-local": "node scripts/seed-local.js",
+    "seed-store": "node scripts/seed-store.js",
+    "reset-store": "node scripts/reset-store.js",
+    "reset": "node scripts/reset.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0"
+  }
+}

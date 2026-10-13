@@ -1,0 +1,685 @@
+const fs = require('fs');
+const path = require('path');
+
+const categories = [
+  { id: 1, name: 'T-shirts', slug: 't-shirts', description: 'Casual and graphic tees' },
+  { id: 2, name: 'Shirts', slug: 'shirts', description: 'Dress, casual, and Oxford shirts' },
+  { id: 3, name: 'Jeans', slug: 'jeans', description: 'Denim pants and trousers' },
+  { id: 4, name: 'Hoodies', slug: 'hoodies', description: 'Pullover and zip sweatshirts' },
+  { id: 5, name: 'Jackets', slug: 'jackets', description: 'Outerwear, coats, and windbreakers' },
+  { id: 6, name: 'Shoes', slug: 'shoes', description: 'Athletic, casual, and formal footwear' },
+  { id: 7, name: 'Accessories', slug: 'accessories', description: 'Bags, belts, scarves, and accessories' }
+];
+
+const globalAttributes = [
+  {
+    id: 1,
+    name: 'Material',
+    slug: 'pa_material',
+    type: 'select',
+    options: ['Cotton', 'Wool', 'Leather', 'Polyester', 'Denim', 'Canvas', 'Linen'],
+    isRequired: true
+  },
+  {
+    id: 2,
+    name: 'Color',
+    slug: 'pa_color',
+    type: 'select',
+    options: ['Black', 'White', 'Navy', 'Brown', 'Grey', 'Red', 'Green', 'Blue'],
+    isRequired: false
+  },
+  {
+    id: 3,
+    name: 'Size',
+    slug: 'pa_size',
+    type: 'select',
+    options: ['XS', 'Small', 'Medium', 'Large', 'XL', '6', '7', '8', '9', '10'],
+    isRequired: false
+  }
+];
+
+// Helper to generate 10 variations (sizes 6..10 x Black, White) for shoe products
+function generateShoeVariations(parentSku, basePrice, parentName) {
+  const sizes = ['6', '7', '8', '9', '10'];
+  const colors = ['Black', 'White'];
+  const variations = [];
+
+  for (const color of colors) {
+    for (const size of sizes) {
+      const colorCode = color.toUpperCase().substring(0, 3);
+      variations.push({
+        sku: `${parentSku}-${colorCode}-${size}`,
+        regular_price: String(basePrice),
+        price: String(basePrice),
+        attributes: [
+          { name: 'Color', option: color },
+          { name: 'Size', option: size }
+        ],
+        image: {
+          src: color === 'Black'
+            ? 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600'
+            : 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600',
+          alt: `${parentName} - ${color} / Size ${size}`
+        }
+      });
+    }
+  }
+  return variations;
+}
+
+const products = [
+  // ========================================================
+  // 8 COMPLETELY CLEAN PRODUCTS (Zero defects)
+  // ========================================================
+  {
+    id: 'p-01',
+    name: 'Classic Oxford Button-Down Shirt',
+    slug: 'classic-oxford-button-down-shirt',
+    sku: 'SHIRT-OXF-001',
+    type: 'simple',
+    price: '49.99',
+    regular_price: '49.99',
+    description: 'A timeless wardrobe essential crafted from 100% premium long-staple cotton with a tailored modern fit, durable mother-of-pearl buttons, and a structured button-down collar designed for all-day comfort.',
+    short_description: '100% premium long-staple cotton Oxford shirt.',
+    categories: [{ name: 'Shirts', slug: 'shirts' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600', alt: 'Classic Oxford Button-Down Shirt' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['White'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-02',
+    name: 'Supima Crewneck T-Shirt',
+    slug: 'supima-crewneck-t-shirt',
+    sku: 'TSH-SUP-002',
+    type: 'simple',
+    price: '29.99',
+    regular_price: '29.99',
+    description: 'Engineered from ultra-soft California Supima cotton, this premium crewneck t-shirt offers an exceptionally smooth hand feel, reinforced shoulder seams, and shape-retaining collar ribbing.',
+    short_description: 'Premium Supima cotton crewneck t-shirt.',
+    categories: [{ name: 'T-shirts', slug: 't-shirts' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600', alt: 'Supima Crewneck T-Shirt' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Navy'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-03',
+    name: 'Raw Selvedge Denim Jeans',
+    slug: 'raw-selvedge-denim-jeans',
+    sku: 'JEA-SLV-003',
+    type: 'simple',
+    price: '119.00',
+    regular_price: '119.00',
+    description: 'Heavyweight 14oz shuttle-loomed Japanese selvedge denim jeans featuring custom antique copper rivets, button fly construction, and a classic straight-leg profile that fades uniquely with wear.',
+    short_description: 'Authentic 14oz Japanese raw selvedge denim jeans.',
+    categories: [{ name: 'Jeans', slug: 'jeans' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=600', alt: 'Raw Selvedge Denim Jeans' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Denim'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Navy'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-04',
+    name: 'Heavyweight Brushed Fleece Hoodie',
+    slug: 'heavyweight-brushed-fleece-hoodie',
+    sku: 'HOD-FLC-004',
+    type: 'simple',
+    price: '69.00',
+    regular_price: '69.00',
+    description: 'Constructed from cozy 450 GSM brushed cotton fleece, this everyday pullover hoodie delivers superior warmth with double-layer hood, rib-knit side panels, and durable flatlock stitching throughout.',
+    short_description: 'Heavyweight 450 GSM brushed cotton fleece hoodie.',
+    categories: [{ name: 'Hoodies', slug: 'hoodies' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600', alt: 'Heavyweight Brushed Fleece Hoodie' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Grey'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-05',
+    name: 'All-Weather Technical Shell Parka',
+    slug: 'all-weather-technical-shell-parka',
+    sku: 'JKT-TEC-005',
+    type: 'simple',
+    price: '189.00',
+    regular_price: '189.00',
+    description: 'Engineered for extreme conditions with a breathable 3-layer waterproof polyester membrane, fully taped seams, storm-flap front zipper, and an adjustable ergonomic storm hood.',
+    short_description: 'Waterproof 3-layer technical polyester shell parka.',
+    categories: [{ name: 'Jackets', slug: 'jackets' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=600', alt: 'Technical Shell Parka' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Polyester'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-06',
+    name: 'Full-Grain Leather Weekender Bag',
+    slug: 'full-grain-leather-weekender-bag',
+    sku: 'ACC-BAG-006',
+    type: 'simple',
+    price: '149.00',
+    regular_price: '149.00',
+    description: 'Hand-assembled from rich full-grain vegetable-tanned leather, this travel weekender includes heavy-duty brass YKK zippers, reinforced bottom base studs, and a padded adjustable shoulder strap.',
+    short_description: 'Full-grain vegetable-tanned leather weekender bag.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600', alt: 'Leather Weekender Bag' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Brown'], visible: true, variation: false }
+    ],
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-07',
+    name: 'PaceRunner Pro Leather Sneaker',
+    slug: 'pacerunner-pro-leather-sneaker',
+    sku: 'SHOE-RUN-007',
+    type: 'variable',
+    price: '129.99',
+    regular_price: '129.99',
+    description: 'An athletic-inspired lifestyle shoe constructed from supple Italian calfskin leather with cushioned EVA midsoles and high-abrasion rubber treads for refined performance and daily wear.',
+    short_description: 'Italian calfskin leather running sneaker.',
+    categories: [{ name: 'Shoes', slug: 'shoes' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600', alt: 'PaceRunner Pro Leather Sneaker' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black', 'White'], visible: true, variation: true },
+      { name: 'Size', slug: 'pa_size', options: ['6', '7', '8', '9', '10'], visible: true, variation: true }
+    ],
+    variations: generateShoeVariations('SHOE-RUN-007', 129.99, 'PaceRunner Pro Leather Sneaker'),
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+  {
+    id: 'p-08',
+    name: 'Classic Urban Oxford Derby Shoe',
+    slug: 'classic-urban-oxford-derby-shoe',
+    sku: 'SHOE-DRB-008',
+    type: 'variable',
+    price: '159.00',
+    regular_price: '159.00',
+    description: 'Handcrafted Goodyear-welted leather derbies built with full-grain leather uppers, stacked wooden heels, and moisture-wicking calfskin linings for long-lasting formal or business casual elegance.',
+    short_description: 'Goodyear-welted full-grain leather derby shoe.',
+    categories: [{ name: 'Shoes', slug: 'shoes' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600', alt: 'Classic Urban Derby Shoe' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black', 'White'], visible: true, variation: true },
+      { name: 'Size', slug: 'pa_size', options: ['6', '7', '8', '9', '10'], visible: true, variation: true }
+    ],
+    variations: generateShoeVariations('SHOE-DRB-008', 159.00, 'Classic Urban Oxford Derby Shoe'),
+    status: 'publish',
+    is_clean: true,
+    defect_tags: []
+  },
+
+  // ========================================================
+  // 22 DEFECTIVE PRODUCTS
+  // ========================================================
+
+  // --- 5 Products with Description Missing (Q05) ---
+  {
+    id: 'p-09',
+    name: 'Vintage Washed Graphic Tee',
+    slug: 'vintage-washed-graphic-tee',
+    sku: 'TSH-VNT-009',
+    type: 'simple',
+    price: '26.00',
+    regular_price: '26.00',
+    description: '', // Defect: Q05 Missing description
+    short_description: '100% combed cotton vintage wash graphic tee.',
+    categories: [{ name: 'T-shirts', slug: 't-shirts' }],
+    images: [], // Defect: Q07 Missing image (1/2)
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['missing_description', 'missing_image']
+  },
+  {
+    id: 'p-10',
+    name: 'Rugged Sherpa-Lined Denim Jacket',
+    slug: 'rugged-sherpa-lined-denim-jacket',
+    sku: 'JKT-SHP-010',
+    type: 'simple',
+    price: '0', // Defect: Q04 Price zero/missing
+    regular_price: '0',
+    description: '', // Defect: Q05 Missing description
+    short_description: 'Heavyweight denim trucker with warm sherpa fleece lining.',
+    categories: [{ name: 'Jackets', slug: 'jackets' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600', alt: 'Denim Jacket' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Denim'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Blue'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['missing_description', 'price_missing_or_zero']
+  },
+  {
+    id: 'p-11',
+    name: 'Classic Suede Chelsea Boot',
+    slug: 'classic-suede-chelsea-boot',
+    sku: 'SHOE-CHL-011',
+    type: 'simple',
+    price: '135.00',
+    regular_price: '135.00',
+    description: '', // Defect: Q05 Missing description
+    short_description: 'Handcrafted suede chelsea boots with elastic side gussets.',
+    categories: [{ name: 'Shoes', slug: 'shoes' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=600', alt: 'Suede Chelsea Boot' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Brown'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['missing_description']
+  },
+  {
+    id: 'p-12',
+    name: 'Ribbed Cashmere Knit Beanie',
+    slug: 'ribbed-cashmere-knit-beanie',
+    sku: 'ACC-BNI-012',
+    type: 'simple',
+    price: '45.00',
+    regular_price: '45.00',
+    description: '', // Defect: Q05 Missing description
+    short_description: 'Luxurious pure cashmere ribbed knit winter beanie.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=600', alt: 'Cashmere Beanie' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Wool'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Grey'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['missing_description']
+  },
+  {
+    id: 'p-13',
+    name: 'Tapered Stretch Chino Pant',
+    slug: 'tapered-stretch-chino-pant',
+    sku: 'JEA-CHN-013',
+    type: 'simple',
+    price: '58.00',
+    regular_price: '58.00',
+    description: '', // Defect: Q05 Missing description
+    short_description: 'Clean modern flat-front chinos crafted from stretch cotton twill.',
+    categories: [{ name: 'Jeans', slug: 'jeans' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600', alt: 'Chino Pant' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Navy'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['missing_description']
+  },
+
+  // --- 4 Products with Description Under 80 Chars (Q06) ---
+  {
+    id: 'p-14',
+    name: 'Essential Pocket Crewneck Tee',
+    slug: 'essential-pocket-crewneck-tee',
+    sku: 'TSH-PKT-014',
+    type: 'simple',
+    price: '24.00',
+    regular_price: '24.00',
+    description: 'Comfortable organic cotton tee for everyday casual wear.', // Defect: Q06 56 chars (< 80)
+    short_description: 'Everyday pocket crew.',
+    categories: [{ name: 'T-shirts', slug: 't-shirts' }],
+    images: [], // Defect: Q07 Missing image (2/2)
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['description_under_80', 'missing_image']
+  },
+  {
+    id: 'p-15',
+    name: 'Minimalist Cardholder Wallet',
+    slug: 'minimalist-cardholder-wallet',
+    sku: 'ACC-WLT-015',
+    type: 'simple',
+    price: '32.00',
+    regular_price: '32.00',
+    description: 'Handcrafted slim leather cardholder wallet with RFID protection.', // Defect: Q06 63 chars (< 80)
+    short_description: 'Slim leather RFID cardholder.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=600', alt: 'Cardholder Wallet' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['description_under_80']
+  },
+  {
+    id: 'p-16',
+    name: 'Relaxed French Terry Pullover',
+    slug: 'relaxed-french-terry-pullover',
+    sku: 'HOD-TRY-016',
+    type: 'simple',
+    price: '64.00',
+    regular_price: '64.00',
+    description: 'Cozy midweight loopback French terry sweatshirt.', // Defect: Q06 48 chars (< 80)
+    short_description: 'French terry pullover.',
+    categories: [{ name: 'Hoodies', slug: 'hoodies' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600', alt: 'French Terry Pullover' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Cotton'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Grey'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['description_under_80']
+  },
+  {
+    id: 'p-17',
+    name: 'TrailGrip Waterproof Running Shoe',
+    slug: 'trailgrip-waterproof-running-shoe',
+    sku: 'SHOE-TRL-017',
+    type: 'variable', // Variable shoe product (3/3)
+    price: '115.00',
+    regular_price: '115.00',
+    description: 'Breathable trail running sneaker with high-traction grip.', // Defect: Q06 57 chars (< 80)
+    short_description: 'All-terrain waterproof trail shoe.',
+    categories: [{ name: 'Shoes', slug: 'shoes' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600', alt: 'Trail Running Shoe' }],
+    attributes: [
+      { name: 'Color', slug: 'pa_color', options: ['Black', 'White'], visible: true, variation: true },
+      { name: 'Size', slug: 'pa_size', options: ['6', '7', '8', '9', '10'], visible: true, variation: true }
+    ],
+    variations: generateShoeVariations('SHOE-TRL-017', 115.00, 'TrailGrip Waterproof Running Shoe'),
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['description_under_80']
+  },
+
+  // --- 5 Products with Material/Color in Title/Text but Attribute is EMPTY (Agent Extraction) ---
+  {
+    id: 'p-18',
+    name: '100% Cotton Chambray Button-Down Workshirt in Navy',
+    slug: '100-cotton-chambray-button-down-workshirt-navy',
+    sku: 'SHIRT-CHM-018',
+    type: 'simple',
+    price: '58.00',
+    regular_price: '58.00',
+    description: 'This classic workshirt features dual utility chest pockets and is sewn from breathable 100% cotton chambray with reinforced triple-needle stitching for lasting workshop utility.',
+    short_description: 'Durable 100% cotton chambray utility shirt in navy.',
+    categories: [{ name: 'Shirts', slug: 'shirts' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600', alt: 'Chambray Workshirt' }],
+    attributes: [], // Defect: Empty attributes! Agent extracts Material="Cotton", Color="Navy" with quote
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['attribute_in_text_only']
+  },
+  {
+    id: 'p-19',
+    name: 'Genuine Leather Braided Dress Belt in Brown',
+    slug: 'genuine-leather-braided-dress-belt-brown',
+    sku: 'ACC-BLT-019',
+    type: 'simple',
+    price: '38.00',
+    regular_price: '38.00',
+    description: 'An artisanal braided dress belt handcrafted from genuine leather with an antique solid brass buckle designed for casual chinos as well as formal tailored trousers.',
+    short_description: 'Handcrafted genuine leather braided belt in brown.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=600', alt: 'Braided Belt' }],
+    attributes: [], // Defect: Empty attributes! Agent extracts Material="Leather", Color="Brown"
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['attribute_in_text_only']
+  },
+  {
+    id: 'p-20',
+    name: 'Extra Soft Merino Wool Ribbed Scarf in Grey',
+    slug: 'extra-soft-merino-wool-ribbed-scarf-grey',
+    sku: 'ACC-SCF-020',
+    type: 'simple',
+    price: '44.00',
+    regular_price: '44.00',
+    description: 'Generously proportioned winter scarf knitted from pure merino wool with ribbed hems to keep you warm and insulated throughout harsh cold-weather climates.',
+    short_description: 'Extra soft merino wool scarf in grey.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=600', alt: 'Merino Wool Scarf' }],
+    attributes: [], // Defect: Empty attributes! Agent extracts Material="Wool", Color="Grey"
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['attribute_in_text_only']
+  },
+  {
+    id: 'p-21',
+    name: 'Heavy Canvas Utility Field Jacket',
+    slug: 'heavy-canvas-utility-field-jacket',
+    sku: 'JKT-FLD-021',
+    type: 'simple',
+    price: '110.00',
+    regular_price: '110.00',
+    description: 'A rugged military-inspired outer layer built from heavy canvas cotton fabric, designed for durable layering in transitional seasons with four exterior gear pockets.',
+    short_description: 'Heavy canvas utility field jacket.',
+    categories: [{ name: 'Jackets', slug: 'jackets' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600', alt: 'Canvas Field Jacket' }],
+    attributes: [], // Defect: Empty attributes! Agent extracts Material="Canvas"
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['attribute_in_text_only']
+  },
+  {
+    id: 'p-22',
+    name: 'Relaxed Fit Denim Carpenter Jeans in Blue',
+    slug: 'relaxed-fit-denim-carpenter-jeans-blue',
+    sku: 'JEA-CRP-022',
+    type: 'simple',
+    price: '79.00',
+    regular_price: '79.00',
+    description: 'Classic workwear carpenter pants featuring authentic denim construction, utility tool pocket, hammer loop, and triple-needle flat-felled seam reinforcements.',
+    short_description: 'Relaxed fit denim carpenter jeans in blue.',
+    categories: [{ name: 'Jeans', slug: 'jeans' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=600', alt: 'Carpenter Jeans' }],
+    attributes: [], // Defect: Empty attributes! Agent extracts Material="Denim", Color="Blue"
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['attribute_in_text_only']
+  },
+
+  // --- 4 Products with Inconsistent / Unnormalized Attributes (Q11) ---
+  {
+    id: 'p-23',
+    name: 'Garment-Dyed Heavyweight T-Shirt',
+    slug: 'garment-dyed-heavyweight-t-shirt',
+    sku: 'TSH-GDY-023',
+    type: 'simple',
+    price: '34.00',
+    regular_price: '34.00',
+    description: 'Substantial 250 GSM jersey tee dyed after sewing for rich vintage color payoff, loose boxy silhouette, and durable collar ribbing.',
+    short_description: 'Garment-dyed cotton t-shirt.',
+    categories: [{ name: 'T-shirts', slug: 't-shirts' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600', alt: 'Garment-Dyed T-Shirt' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['cotton'], visible: true, variation: false } // Defect: Q11 lowercase 'cotton'
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['inconsistent_attribute_naming']
+  },
+  {
+    id: 'p-24',
+    name: 'Classic Gingham Check Casual Shirt',
+    slug: 'classic-gingham-check-casual-shirt',
+    sku: 'SHIRT-GNG-024',
+    type: 'simple',
+    price: '54.00',
+    regular_price: '54.00',
+    description: 'Crisp button-down shirt woven with timeless gingham check pattern, curved hemline for untucked wear, and contrast inner cuff lining.',
+    short_description: 'Gingham check cotton casual shirt.',
+    categories: [{ name: 'Shirts', slug: 'shirts' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600', alt: 'Gingham Shirt' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['COTTON'], visible: true, variation: false } // Defect: Q11 uppercase 'COTTON'
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['inconsistent_attribute_naming']
+  },
+  {
+    id: 'p-25',
+    name: 'Heritage Thermal Lined Zip Hoodie',
+    slug: 'heritage-thermal-lined-zip-hoodie',
+    sku: 'HOD-THM-025',
+    type: 'simple',
+    price: '78.00',
+    regular_price: '78.00',
+    description: 'Heavyweight full-zip hoodie featuring a thermal waffle knit inner lining, split kangaroo pockets, and antique brass metal zipper teeth.',
+    short_description: 'Thermal waffle-lined zip hoodie.',
+    categories: [{ name: 'Hoodies', slug: 'hoodies' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600', alt: 'Thermal Zip Hoodie' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['100% cotton'], visible: true, variation: false } // Defect: Q11 '100% cotton'
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['inconsistent_attribute_naming']
+  },
+  {
+    id: 'p-26',
+    name: 'Water-Resistant Windbreaker Jacket',
+    slug: 'water-resistant-windbreaker-jacket',
+    sku: 'JKT-WND-026',
+    type: 'simple',
+    price: '68.00',
+    regular_price: '68.00',
+    description: 'Lightweight packable shell constructed from durable polyester ripstop with an adjustable elasticized hood and zip hand pockets.',
+    short_description: 'Packable polyester windbreaker jacket.',
+    categories: [{ name: 'Jackets', slug: 'jackets' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=600', alt: 'Windbreaker Jacket' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Polyester'], visible: true, variation: false },
+      { name: 'Size', slug: 'pa_size', options: ['M'], visible: true, variation: false } // Defect: Q11 'M' vs 'Medium'
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['inconsistent_attribute_naming']
+  },
+
+  // --- 2 Products with NO text supporting required attribute (Agent must flag UNCERTAIN) ---
+  {
+    id: 'p-27',
+    name: 'Everyday Casual Minimalist Pullover',
+    slug: 'everyday-casual-minimalist-pullover',
+    sku: 'HOD-MIN-027',
+    type: 'simple',
+    price: '48.00',
+    regular_price: '48.00',
+    description: 'A versatile basic pullover designed with clean modern lines, raglan sleeves, and comfortable ribbed trims for cozy layering in any season.',
+    short_description: 'Modern minimalist pullover top.',
+    categories: [{ name: 'Hoodies', slug: 'hoodies' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600', alt: 'Minimalist Pullover' }],
+    attributes: [], // Defect: Required Material is missing; text has NO mention of any material!
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['unsupported_required_attribute']
+  },
+  {
+    id: 'p-28',
+    name: 'Urban Commuter Weatherproof Trench',
+    slug: 'urban-commuter-weatherproof-trench',
+    sku: 'JKT-TRN-028',
+    type: 'simple',
+    price: '165.00',
+    regular_price: '165.00',
+    description: 'Sleek aerodynamic outer layer featuring storm-guard placket, concealed interior zippers, adjustable cuffs, and deep cargo pockets.',
+    short_description: 'Sleek aerodynamic outer trench.',
+    categories: [{ name: 'Jackets', slug: 'jackets' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=600', alt: 'Commuter Trench' }],
+    attributes: [], // Defect: Required Material is missing; text has NO mention of any material!
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['unsupported_required_attribute']
+  },
+
+  // --- 1 Duplicate-SKU Pair (Q03) ---
+  {
+    id: 'p-29',
+    name: 'Heritage Leather Driving Gloves',
+    slug: 'heritage-leather-driving-gloves',
+    sku: 'DUP-SKU-999', // Defect: Duplicate SKU pair member 1
+    type: 'simple',
+    price: '52.00',
+    regular_price: '52.00',
+    description: 'Supple sheepskin leather driving gloves lined with warm cashmere for refined winter protection and touch-screen compatibility.',
+    short_description: 'Supple leather winter gloves.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600', alt: 'Leather Gloves' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Leather'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Black'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['duplicate_sku_primary']
+  },
+  {
+    id: 'p-30',
+    name: 'Cable-Knit Merino Wool Mittens',
+    slug: 'cable-knit-merino-wool-mittens',
+    sku: 'DUP-SKU-999', // Defect: Duplicate SKU pair member 2 (conflicts with p-29!)
+    type: 'simple',
+    price: '36.00',
+    regular_price: '36.00',
+    description: 'Thick cable-knit merino wool mittens with folded rib cuffs to insulate fingers against frigid morning temperatures.',
+    short_description: 'Cable-knit wool mittens.',
+    categories: [{ name: 'Accessories', slug: 'accessories' }],
+    images: [{ src: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600', alt: 'Knit Mittens' }],
+    attributes: [
+      { name: 'Material', slug: 'pa_material', options: ['Wool'], visible: true, variation: false },
+      { name: 'Color', slug: 'pa_color', options: ['Navy'], visible: true, variation: false }
+    ],
+    status: 'draft',
+    is_clean: false,
+    defect_tags: ['duplicate_sku_secondary', 'local_draft_only']
+  }
+];
+
+const catalog = {
+  version: '1.0.0',
+  description: 'CatalogIQ 30-product canonical demonstration seed catalog for apparel & footwear',
+  categories,
+  attributes: globalAttributes,
+  products
+};
+
+const outputPath = path.resolve(__dirname, '..', 'seed', 'catalog.json');
+fs.writeFileSync(outputPath, JSON.stringify(catalog, null, 2), 'utf8');
+console.log(`Generated canonical catalog at ${outputPath}`);
+console.log(`Total products: ${products.length}`);
+console.log(`Clean products: ${products.filter(p => p.is_clean).length}`);
+console.log(`Defective products: ${products.filter(p => !p.is_clean).length}`);
